@@ -272,10 +272,10 @@ def weighted_average_prediction(X_test, trained_models, model_wise=[0.25, 0.35, 
         all_preds.append(current_pred)
     return np.stack(all_preds, axis=1).sum(axis=1)
 
-def load_trained_models(path='../input/trained_models', kf_nsplits=5):
+def load_trained_models(path='../input/trained_models', kf_n_splits=5):
     trained_models = {'initial': [], 'light': [], 'heavy': []}
     for scheme in ['initial', 'light', 'heavy']:
-        for fold in range(kf_nsplits):
+        for fold in range(kf_n_splits):
             for Model in [LSTM, Conv, GRU]:
                 model = Model(scheme)
                 for weights_path in os.listdir(path):

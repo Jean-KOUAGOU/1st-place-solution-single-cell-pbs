@@ -37,7 +37,7 @@ if __name__ == "__main__":
     X_vec_heavy = combine_features([quantiles_df,mean_cell_type,mean_sm_name],\
                     [train_chem_feat,train_chem_feat_mean], de_train, one_hot_train, quantiles_df)
     ## KFold cross validation
-    splits = args.kf_nsplits
+    splits = args.kf_n_splits
     kf_cv = KF(n_splits=splits, shuffle=True, random_state=42)
     ## Start training
     print("\nTraining starting...")
