@@ -25,6 +25,7 @@ Make sure to locate in the main directory
 - Pretrained models can also be downloaded, see link on Kaggle to avoid training.
 
 ## Predicting
+Check that there is a non-empty directory named `trained_models` and that its path is specified in `config/config_test.json`
 - Run `python predict.py` to predict on the test data whose path is specified in `config/config_test.json`. This will automatically create a directory `submissions` and store predictions in `submissions/submission.csv`
 
 
