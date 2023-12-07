@@ -6,7 +6,7 @@ Make sure Anaconda3 is installed and execute the following:
 
 1. Clone this repository `git clone https://github.com/Jean-KOUAGOU/1st-place-solution-single-cell-pbs.git`
 
-2. First create and activate a conda environement `conda create -n single_cell_env --y && conda activate single_cell_env`
+2. First create and activate a conda environement `conda create -n single_cell_env python==3.9.0 --y && conda activate single_cell_env`
 
 3. Install all required packages in the environment `pip install -r requirements.txt`
 
