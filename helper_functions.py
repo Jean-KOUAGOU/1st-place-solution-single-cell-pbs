@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from argparse import Namespace
 import numpy as np
 import pandas as pd
@@ -150,6 +151,7 @@ def mrrmse_np(y_pred, y_true):
 def train_step(dataloader, model, opt, clip_norm):
     model.train()
     train_losses = []
+    train_mrrmse = []
     for x, target in dataloader:
         if torch.cuda.is_available():
             model.cuda()
@@ -157,11 +159,13 @@ def train_step(dataloader, model, opt, clip_norm):
             target = target.cuda()
         loss = model(x, target)
         train_losses.append(loss.item())
+        pred = model(x).detach().cpu().numpy()
+        train_mrrmse.append(mrrmse_np(pred, target.cpu().numpy()))
         opt.zero_grad()
         loss.backward()
         clip_grad_norm_(model.parameters(), clip_norm)
         opt.step()
-    return np.mean(train_losses)
+    return np.mean(train_losses), np.mean(train_mrrmse)
 
 def validation_step(dataloader, model):
     model.eval()
@@ -179,13 +183,15 @@ def validation_step(dataloader, model):
     return np.mean(val_losses), np.mean(val_mrrmse)
 
 
-def train_function(model, x_train, y_train, x_val, y_val, epochs=20, clip_norm=1.0):
+def train_function(model, x_train, y_train, x_val, y_val, info_data, epochs=20, clip_norm=1.0):
     if model.name in ['GRU']:
         print('lr', 0.0003)
         opt = torch.optim.Adam(model.parameters(), lr=0.0003)
     else:
         opt = torch.optim.Adam(model.parameters(), lr=0.001)
     model.cuda()
+    results = {'train_loss': [], 'val_loss': [], 'train_mrrmse': [], 'val_mrrmse': [],\
+               'train_cell_type': info_data['train_cell_type'], 'val_cell_type': info_data['val_cell_type'], 'train_sm_name': info_data['train_sm_name'], 'val_sm_name': info_data['val_sm_name'], 'runtime': None}
     x_train_aug, y_train_aug = augment_data(x_train, y_train)
     x_train_aug = np.concatenate([x_train, x_train_aug], axis=0)
     y_train_aug = np.concatenate([y_train, y_train_aug], axis=0)
@@ -197,43 +203,55 @@ def train_function(model, x_train, y_train, x_val, y_val, epochs=20, clip_norm=1
     val_dataloader = DataLoader(Dataset(data_x_val, data_y_val), num_workers=4, batch_size=32, shuffle=False)
     best_loss = np.inf
     best_weights = None
-    train_losses = []
-    val_losses = []
+    t0 = time.time()
     for e in range(epochs):
-        loss = train_step(train_dataloader, model, opt, clip_norm)
-        val_losses.append(loss.item())
+        loss, mrrmse = train_step(train_dataloader, model, opt, clip_norm)
         val_loss, val_mrrmse = validation_step(val_dataloader, model)
+        results['train_loss'].append(float(loss))
+        results['val_loss'].append(float(val_loss))
+        results['train_mrrmse'].append(float(mrrmse))
+        results['val_mrrmse'].append(float(val_mrrmse))
         if val_mrrmse < best_loss:
             best_loss = val_mrrmse
             best_weights = model.state_dict()
             print('BEST ----> ')
         print(f"{model.name} Epoch {e}, train_loss {round(loss,3)}, val_loss {round(val_loss, 3)}, val_mrrmse {val_mrrmse}")
+    t1 = time.time()
+    results['runtime'] = float(t1-t0)
     model.load_state_dict(best_weights)
-    return model
+    return model, results
 
 
-def cross_validate_models(X, y, kf_cv, epochs=120, scheme='initial', clip_norm=1.0):
+def cross_validate_models(X, y, kf_cv, cell_types_sm_names, epochs=120, scheme='initial', clip_norm=1.0):
     trained_models = []
     for i,(train_idx,val_idx) in enumerate(kf_cv.split(X)):
         print(f"\nSplit {i+1}/{kf_cv.n_splits}...")
         x_train, x_val = X[train_idx], X[val_idx]
         y_train, y_val = y.values[train_idx], y.values[val_idx]
+        info_data = {'train_cell_type': cell_types_sm_names.iloc[train_idx]['cell_type'].tolist(),
+                    'val_cell_type': cell_types_sm_names.iloc[val_idx]['cell_type'].tolist(),
+                    'train_sm_name': cell_types_sm_names.iloc[train_idx]['sm_name'].tolist(),
+                    'val_sm_name': cell_types_sm_names.iloc[val_idx]['sm_name'].tolist()}
         for Model in [LSTM, Conv, GRU]:
             model = Model(scheme)
-            model = train_function(model, x_train, y_train, x_val, y_val, epochs=epochs, clip_norm=clip_norm)
+            model, results = train_function(model, x_train, y_train, x_val, y_val, info_data, epochs=epochs, clip_norm=clip_norm)
             model.to('cpu')
             trained_models.append(model)
             torch.save(model.state_dict(), f'./trained_models/pytorch_{model.name}_{scheme}_fold{i}.pt')
+            with open(f'./results/{model.name}_{scheme}_fold{i}.json', 'w') as file:
+                json.dump(results, file)
             torch.cuda.empty_cache()
     return trained_models
 
-def train_validate(X_vec, X_vec_light, X_vec_heavy, y, kf_cv, epochs=1):
+def train_validate(X_vec, X_vec_light, X_vec_heavy, y, kf_cv, cell_types_sm_names, epochs=1):
     trained_models = {'initial': [], 'light': [], 'heavy': []}
     if not os.path.exists("./trained_models"):
         os.mkdir("./trained_models")
+    if not os.path.exists("./results"):
+        os.mkdir("./results")
     for scheme, clip_norm, input_features in zip(['initial', 'light', 'heavy'], [5.0, 1.0, 1.0], [X_vec, X_vec_light, X_vec_heavy]):
         seed_everything()
-        models = cross_validate_models(input_features, y, kf_cv, epochs=epochs, scheme=scheme, clip_norm=clip_norm)
+        models = cross_validate_models(input_features, y, kf_cv, cell_types_sm_names, epochs=epochs, scheme=scheme, clip_norm=clip_norm)
         trained_models[scheme].extend(models)
     return trained_models
 

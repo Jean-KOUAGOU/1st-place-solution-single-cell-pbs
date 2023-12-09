@@ -40,8 +40,9 @@ if __name__ == "__main__":
     splits = args.kf_n_splits
     kf_cv = KF(n_splits=splits, shuffle=True, random_state=42)
     ## Start training
+    cell_types_sm_names = de_train[['cell_type', 'sm_name']]
     print("\nTraining starting...")
-    train_validate(X_vec, X_vec_light, X_vec_heavy, y, kf_cv, epochs=args.epochs)
+    train_validate(X_vec, X_vec_light, X_vec_heavy, y, kf_cv, cell_types_sm_names, epochs=args.epochs)
     print("\nDone.")
     
     

@@ -1,0 +1,10 @@
+.
+./config
+./data
+./prepared_data
+./results
+./submissions
+./trained_models
+
+
+
