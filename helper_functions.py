@@ -11,8 +11,12 @@ from tqdm import tqdm
 from sklearn.preprocessing import OneHotEncoder
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 import random
+from sklearn.model_selection import KFold as KF
 from models import Conv, LSTM, GRU
 from helper_classes import Dataset
+
+with open("./SETTINGS.json") as file:
+    settings = json.load(file) 
 
 def seed_everything():
     seed = 42
@@ -29,15 +33,8 @@ def seed_everything():
     print('-----Seed Set!-----')
     
     
-#### Reading configurations
-def read_config(path="./config/config_train.json"):
-    with open(path) as file:
-        CONFIG = json.load(file)
-        CONFIG = Namespace(**CONFIG)
-    return CONFIG
-
 #### Data preprocessing utilities
-def one_hot_encode(data_train, data_test, out_dir, config_dir):
+def one_hot_encode(data_train, data_test, out_dir):
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
     encoder = OneHotEncoder()
@@ -45,18 +42,7 @@ def one_hot_encode(data_train, data_test, out_dir, config_dir):
     train_features = encoder.transform(data_train)
     test_features = encoder.transform(data_test)
     np.save(f"{out_dir}/one_hot_train.npy", train_features.toarray().astype(float))
-    np.save(f"{out_dir}/one_hot_test.npy", test_features.toarray().astype(float))
-    with open(f"{config_dir}/config_train.json") as file:
-        config_train = json.load(file)
-        config_train["one_hot_train"] = f"{out_dir}/one_hot_train.npy"
-    with open(f"{config_dir}/config_train.json", "w") as file:
-         json.dump(config_train, file)
-    with open(f"{config_dir}/config_test.json") as file:
-        config_test = json.load(file)
-        config_test["one_hot_test"] = f"{out_dir}/one_hot_train.npy"
-    with open(f"{config_dir}/config_test.json", "w") as file:
-        json.dump(config_test, file)
-        
+    np.save(f"{out_dir}/one_hot_test.npy", test_features.toarray().astype(float))        
         
 def build_ChemBERTa_features(smiles_list):
     chemberta = AutoModelForMaskedLM.from_pretrained("DeepChem/ChemBERTa-77M-MTR")
@@ -75,31 +61,21 @@ def build_ChemBERTa_features(smiles_list):
     return embeddings.numpy(), embeddings_mean.numpy()
 
 
-def save_ChemBERTa_features(smiles_list, out_dir,  config_dir, on_train_data=False):
+def save_ChemBERTa_features(smiles_list, out_dir, on_train_data=False):
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
     emb, emb_mean = build_ChemBERTa_features(smiles_list)
     if on_train_data:
         np.save(f"{out_dir}/chemberta_train.npy", emb)
         np.save(f"{out_dir}/chemberta_train_mean.npy", emb_mean)
-        with open(f"{config_dir}/config_train.json") as file:
-            config_train = json.load(file)
-            config_train["chemberta_train"] = f"{out_dir}/chemberta_train.npy"
-            config_train ["chemberta_train_mean"] = f"{out_dir}/chemberta_train_mean.npy"
-        with open(f"{config_dir}/config_train.json", "w") as file:
-             json.dump(config_train, file)
     else:
         np.save(f"{out_dir}/chemberta_test.npy", emb)
-        np.save(f"{out_dir}/chemberta_test_mean.npy", emb_mean)
-        with open(f"{config_dir}/config_test.json") as file:
-            config_test = json.load(file)
-            config_test["chemberta_test"] = f"{out_dir}/chemberta_test.npy"
-            config_test["chemberta_test_mean"] = f"{out_dir}/chemberta_test_mean.npy"
-        with open(f"{config_dir}/config_test.json", "w") as file:
-             json.dump(config_test, file)
-                
+        np.save(f"{out_dir}/chemberta_test_mean.npy", emb_mean)                
                 
 def combine_features(data_aug_dfs, chem_feats, main_df, one_hot_dfs=None, quantiles_df=None):
+    """
+    This function concatenates the provided vectors, matrices and data frames (i.e., one hot, std, mean, etc) into a single long vector. This is done for each pair (cell_type, sm_name)
+    """
     new_vecs = []
     chem_feat_dim = 600
     if len(data_aug_dfs) > 0:
@@ -142,7 +118,6 @@ def augment_data(x_, y_):
     return np.stack(new_x, axis=0), new_y
 
 #### Metrics
-
 def mrrmse_np(y_pred, y_true):
     return np.sqrt(np.square(y_true - y_pred).mean(axis=1)).mean()
 
@@ -183,12 +158,12 @@ def validation_step(dataloader, model):
     return np.mean(val_losses), np.mean(val_mrrmse)
 
 
-def train_function(model, x_train, y_train, x_val, y_val, info_data, epochs=20, clip_norm=1.0):
+def train_function(model, x_train, y_train, x_val, y_val, info_data, config, clip_norm=1.0):
     if model.name in ['GRU']:
-        print('lr', 0.0003)
-        opt = torch.optim.Adam(model.parameters(), lr=0.0003)
+        print('lr', config["LEARNING_RATES"][2])
+        opt = torch.optim.Adam(model.parameters(), lr=config["LEARNING_RATES"][2])
     else:
-        opt = torch.optim.Adam(model.parameters(), lr=0.001)
+        opt = torch.optim.Adam(model.parameters(), lr=config["LEARNING_RATES"][0])
     model.cuda()
     results = {'train_loss': [], 'val_loss': [], 'train_mrrmse': [], 'val_mrrmse': [],\
                'train_cell_type': info_data['train_cell_type'], 'val_cell_type': info_data['val_cell_type'], 'train_sm_name': info_data['train_sm_name'], 'val_sm_name': info_data['val_sm_name'], 'runtime': None}
@@ -204,7 +179,7 @@ def train_function(model, x_train, y_train, x_val, y_val, info_data, epochs=20, 
     best_loss = np.inf
     best_weights = None
     t0 = time.time()
-    for e in range(epochs):
+    for e in range(config["EPOCHS"]):
         loss, mrrmse = train_step(train_dataloader, model, opt, clip_norm)
         val_loss, val_mrrmse = validation_step(val_dataloader, model)
         results['train_loss'].append(float(loss))
@@ -222,7 +197,7 @@ def train_function(model, x_train, y_train, x_val, y_val, info_data, epochs=20, 
     return model, results
 
 
-def cross_validate_models(X, y, kf_cv, cell_types_sm_names, epochs=120, scheme='initial', clip_norm=1.0):
+def cross_validate_models(X, y, kf_cv, cell_types_sm_names, config=None, scheme='initial', clip_norm=1.0):
     trained_models = []
     for i,(train_idx,val_idx) in enumerate(kf_cv.split(X)):
         print(f"\nSplit {i+1}/{kf_cv.n_splits}...")
@@ -234,29 +209,29 @@ def cross_validate_models(X, y, kf_cv, cell_types_sm_names, epochs=120, scheme='
                     'val_sm_name': cell_types_sm_names.iloc[val_idx]['sm_name'].tolist()}
         for Model in [LSTM, Conv, GRU]:
             model = Model(scheme)
-            model, results = train_function(model, x_train, y_train, x_val, y_val, info_data, epochs=epochs, clip_norm=clip_norm)
+            model, results = train_function(model, x_train, y_train, x_val, y_val, info_data, config=config, clip_norm=clip_norm)
             model.to('cpu')
             trained_models.append(model)
-            torch.save(model.state_dict(), f'./trained_models/pytorch_{model.name}_{scheme}_fold{i}.pt')
-            with open(f'./results/{model.name}_{scheme}_fold{i}.json', 'w') as file:
+            torch.save(model.state_dict(), f'{settings["MODEL_DIR"]}pytorch_{model.name}_{scheme}_fold{i}.pt')
+            with open(f'{settings["LOGS_DIR"]}{model.name}_{scheme}_fold{i}.json', 'w') as file:
                 json.dump(results, file)
             torch.cuda.empty_cache()
     return trained_models
 
-def train_validate(X_vec, X_vec_light, X_vec_heavy, y, kf_cv, cell_types_sm_names, epochs=1):
+def train_validate(X_vec, X_vec_light, X_vec_heavy, y, cell_types_sm_names, config):
+    kf_cv = KF(n_splits=config["KF_N_SPLITS"], shuffle=True, random_state=42)
     trained_models = {'initial': [], 'light': [], 'heavy': []}
-    if not os.path.exists("./trained_models"):
-        os.mkdir("./trained_models")
-    if not os.path.exists("./results"):
-        os.mkdir("./results")
-    for scheme, clip_norm, input_features in zip(['initial', 'light', 'heavy'], [5.0, 1.0, 1.0], [X_vec, X_vec_light, X_vec_heavy]):
+    if not os.path.exists(settings["MODEL_DIR"]):
+        os.mkdir(MODEL_DIR)
+    if not os.path.exists(settings["LOGS_DIR"]):
+        os.mkdir(LOGS_DIR)
+    for scheme, clip_norm, input_features in zip(['initial', 'light', 'heavy'], config["CLIP_VALUES"], [X_vec, X_vec_light, X_vec_heavy]):
         seed_everything()
-        models = cross_validate_models(input_features, y, kf_cv, cell_types_sm_names, epochs=epochs, scheme=scheme, clip_norm=clip_norm)
+        models = cross_validate_models(input_features, y, kf_cv, cell_types_sm_names, config=config, scheme=scheme, clip_norm=clip_norm)
         trained_models[scheme].extend(models)
     return trained_models
 
 #### Inference utilities
-
 def inference_pytorch(model, dataloader):
     model.eval()
     preds = []
@@ -290,7 +265,7 @@ def weighted_average_prediction(X_test, trained_models, model_wise=[0.25, 0.35, 
         all_preds.append(current_pred)
     return np.stack(all_preds, axis=1).sum(axis=1)
 
-def load_trained_models(path='../input/trained_models', kf_n_splits=5):
+def load_trained_models(path=settings["MODEL_DIR"], kf_n_splits=5):
     trained_models = {'initial': [], 'light': [], 'heavy': []}
     for scheme in ['initial', 'light', 'heavy']:
         for fold in range(kf_n_splits):
@@ -298,6 +273,6 @@ def load_trained_models(path='../input/trained_models', kf_n_splits=5):
                 model = Model(scheme)
                 for weights_path in os.listdir(path):
                     if model.name in weights_path and scheme in weights_path and f'fold{fold}' in weights_path:
-                        model.load_state_dict(torch.load(f'{path}/{weights_path}', map_location='cpu'))
+                        model.load_state_dict(torch.load(f'{path}{weights_path}', map_location='cpu'))
                         trained_models[scheme].append(model)
     return trained_models

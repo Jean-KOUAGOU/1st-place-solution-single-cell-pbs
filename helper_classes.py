@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class LogCoshLoss(nn.Module):
     """Loss function for regression tasks"""
     def __init__(self):
