@@ -10,6 +10,21 @@ Make sure Anaconda3 is installed and execute the following:
 
 3. Install all required packages in the environment `pip install -r requirements.txt`
 
+## Dependencies
+1. python 3.9.0
+2. pandas 2.1.3
+3. pyarrow 14.0.1
+4. tqdm 4.66.1
+5. scikit-learn 1.3.2
+6. torch 2.1.1
+7. transformers 4.35.2
+8. matplotlib 3.8.2
+
+## Hardware:
+- Ubuntu 20.04.6 LTS (Kaggle) AMD EPYC 7B12 CPU @ 2.25GHz (4 CPUs) 30GB RAM, 1xTesla GPU P100 16 GB (Kaggle), 73 GB disc
+- Also tested on Debian GNU/Linux 11, 1xNvidia GPU rtx 3090 24 GB, 252 GB RAM, 500 GB disc
+
+
 ## Preprocessing
 1. Create a folder called `data/` in the main directory
 
