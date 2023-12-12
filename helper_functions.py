@@ -179,7 +179,7 @@ def train_function(model, x_train, y_train, x_val, y_val, info_data, config, cli
     best_loss = np.inf
     best_weights = None
     t0 = time.time()
-    for e in range(5):#range(config["EPOCHS"]):
+    for e in range(config["EPOCHS"]):
         loss, mrrmse = train_step(train_dataloader, model, opt, clip_norm)
         val_loss, val_mrrmse = validation_step(val_dataloader, model)
         results['train_loss'].append(float(loss))
