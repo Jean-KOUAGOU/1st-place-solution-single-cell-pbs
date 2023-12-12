@@ -1,0 +1,1 @@
+sudo docker build --no-cache -f Dockerfile.docker -t single_cell_env .

@@ -16,7 +16,9 @@ from models import Conv, LSTM, GRU
 from helper_classes import Dataset
 
 with open("./SETTINGS.json") as file:
-    settings = json.load(file) 
+    settings = json.load(file)
+    
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def seed_everything():
     seed = 42
@@ -128,10 +130,9 @@ def train_step(dataloader, model, opt, clip_norm):
     train_losses = []
     train_mrrmse = []
     for x, target in dataloader:
-        if torch.cuda.is_available():
-            model.cuda()
-            x = x.cuda()
-            target = target.cuda()
+        model.to(device)
+        x = x.to(device)
+        target = target.to(device)
         loss = model(x, target)
         train_losses.append(loss.item())
         pred = model(x).detach().cpu().numpy()
@@ -147,10 +148,9 @@ def validation_step(dataloader, model):
     val_losses = []
     val_mrrmse = []
     for x, target in dataloader:
-        if torch.cuda.is_available():
-            model.cuda()
-            x = x.cuda()
-            target = target.cuda()
+        model.to(device)
+        x = x.to(device)
+        target = target.to(device)
         loss = model(x,target)
         pred = model(x).detach().cpu().numpy()
         val_mrrmse.append(mrrmse_np(pred, target.cpu().numpy()))
@@ -164,7 +164,7 @@ def train_function(model, x_train, y_train, x_val, y_val, info_data, config, cli
         opt = torch.optim.Adam(model.parameters(), lr=config["LEARNING_RATES"][2])
     else:
         opt = torch.optim.Adam(model.parameters(), lr=config["LEARNING_RATES"][0])
-    model.cuda()
+    model.to(device)
     results = {'train_loss': [], 'val_loss': [], 'train_mrrmse': [], 'val_mrrmse': [],\
                'train_cell_type': info_data['train_cell_type'], 'val_cell_type': info_data['val_cell_type'], 'train_sm_name': info_data['train_sm_name'], 'val_sm_name': info_data['val_sm_name'], 'runtime': None}
     x_train_aug, y_train_aug = augment_data(x_train, y_train)
@@ -215,7 +215,8 @@ def cross_validate_models(X, y, kf_cv, cell_types_sm_names, config=None, scheme=
             torch.save(model.state_dict(), f'{settings["MODEL_DIR"]}pytorch_{model.name}_{scheme}_fold{i}.pt')
             with open(f'{settings["LOGS_DIR"]}{model.name}_{scheme}_fold{i}.json', 'w') as file:
                 json.dump(results, file)
-            torch.cuda.empty_cache()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
     return trained_models
 
 def train_validate(X_vec, X_vec_light, X_vec_heavy, y, cell_types_sm_names, config):
@@ -236,13 +237,13 @@ def inference_pytorch(model, dataloader):
     model.eval()
     preds = []
     for x in dataloader:
-        if torch.cuda.is_available():
-            model.cuda()
-            x = x.cuda()
+        model.to(device)
+        x = x.to(device)
         pred = model(x).detach().cpu().numpy()
         preds.append(pred)
     model.to('cpu')
-    torch.cuda.empty_cache()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     return np.concatenate(preds, axis=0)
 
 def average_prediction(X_test, trained_models):

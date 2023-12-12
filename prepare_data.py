@@ -10,7 +10,7 @@ if __name__ == "__main__":
     with open("./SETTINGS.json") as file:
         settings = json.load(file)
     ## Read data
-    print("\nProcessing...")
+    print("\nPreparing data...")
     de_train = pd.read_parquet(settings["TRAIN_RAW_DATA_PATH"])
     id_map = pd.read_csv(settings["TEST_RAW_DATA_PATH"])
     ## Create data augmentation
