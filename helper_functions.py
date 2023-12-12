@@ -179,7 +179,7 @@ def train_function(model, x_train, y_train, x_val, y_val, info_data, config, cli
     best_loss = np.inf
     best_weights = None
     t0 = time.time()
-    for e in range(config["EPOCHS"]):
+    for e in range(5):#range(config["EPOCHS"]):
         loss, mrrmse = train_step(train_dataloader, model, opt, clip_norm)
         val_loss, val_mrrmse = validation_step(val_dataloader, model)
         results['train_loss'].append(float(loss))
@@ -222,9 +222,9 @@ def train_validate(X_vec, X_vec_light, X_vec_heavy, y, cell_types_sm_names, conf
     kf_cv = KF(n_splits=config["KF_N_SPLITS"], shuffle=True, random_state=42)
     trained_models = {'initial': [], 'light': [], 'heavy': []}
     if not os.path.exists(settings["MODEL_DIR"]):
-        os.mkdir(MODEL_DIR)
+        os.mkdir(settings["MODEL_DIR"])
     if not os.path.exists(settings["LOGS_DIR"]):
-        os.mkdir(LOGS_DIR)
+        os.mkdir(settings["LOGS_DIR"])
     for scheme, clip_norm, input_features in zip(['initial', 'light', 'heavy'], config["CLIP_VALUES"], [X_vec, X_vec_light, X_vec_heavy]):
         seed_everything()
         models = cross_validate_models(input_features, y, kf_cv, cell_types_sm_names, config=config, scheme=scheme, clip_norm=clip_norm)
