@@ -59,7 +59,7 @@ Make sure to locate at the top level of this Github repository
 Check that there is a non-empty directory named `trained_models` and that its path is specified in `SETTINGS.json` under `MODEL_DIR`
 - Run `python predict.py` to predict on the test data whose path is specified in `SETTINGS.json`. This will automatically create an output directory sepcified in `SETTINGS.json`and store predictions in a file named `submission.csv`
 
-## Reproduction
+## Reproduction (Docker)
 1. Create a directory `data` in this Github repository
 2. Add de_train.parquet, id_map.csv, and sample_submission.csv into the directory `data`
 3. If necessary, edit SETTINGS.json by specifying the correct paths
@@ -70,6 +70,8 @@ Check that there is a non-empty directory named `trained_models` and that its pa
 - Execute `./run.sh predict` to run the container and directly predict using the trained models
 7. Execute `./run.sh train_and_predict` to train new models and predict. If the objective is not to reproduce the results, you can also change configurations in `config` such as learning rate, epochs, etc.
 Note: If you encounter an error in 6. and 7., there is probably a conflicting container name, e.g., you have executed `./run.sh` several times. The error might look like `The container name "/single_cell_container" is already in use by container container_id`. In that case, delete `container_id`, and retry.
+
+*Remark:* By downloading the submission model from Kaggle, all scripts (including this README.md) and pretrained models are downloaded. The folder you download can therefore replace this repository.
 
 
 

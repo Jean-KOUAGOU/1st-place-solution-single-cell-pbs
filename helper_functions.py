@@ -76,7 +76,7 @@ def save_ChemBERTa_features(smiles_list, out_dir, on_train_data=False):
                 
 def combine_features(data_aug_dfs, chem_feats, main_df, one_hot_dfs=None, quantiles_df=None):
     """
-    This function concatenates the provided vectors, matrices and data frames (i.e., one hot, std, mean, etc) into a single long vector. This is done for each pair (cell_type, sm_name)
+    This function concatenates the provided vectors, matrices and data frames (i.e., one hot, std, mean, etc) into a single long vector. This is done for each input pair (cell_type, sm_name)
     """
     new_vecs = []
     chem_feat_dim = 600

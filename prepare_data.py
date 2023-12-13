@@ -20,7 +20,7 @@ if __name__ == "__main__":
     mean_sm_name = de_sm_name.groupby('sm_name').mean().reset_index()
     std_cell_type = de_cell_type.groupby('cell_type').std().reset_index()
     std_sm_name = de_sm_name.groupby('sm_name').std().reset_index()
-    cell_types = de_cell_type.groupby('cell_type').quantile(0.1).reset_index()['cell_type']
+    cell_types = de_cell_type.groupby('cell_type').quantile(0.1).reset_index()['cell_type'] # This is just to get cell types in the right order for the next line
     quantiles_cell_type = pd.concat([pd.DataFrame(cell_types)]+[de_cell_type.groupby('cell_type')[col]\
 .quantile([0.25, 0.50, 0.75], interpolation='linear').unstack().reset_index(drop=True) for col in list(de_train.columns)[5:]], axis=1)
     ## Save data augmentation features
