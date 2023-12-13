@@ -3,7 +3,7 @@
 - runs all preprocessing steps
 - saves the prepared data in TRAIN_DATA_AUG_DIR (specified in SETTINGS.json)
 2. python train.py
-- reads training data from RAW_DATA_DIR and TRAIN_DATA_AUG_DIR (specified in SETTINGS.json)
+- reads training data from TRAIN_RAW_DATA_PATH and TRAIN_DATA_AUG_DIR (specified in SETTINGS.json)
 - trains the models
 - saves the trained models to MODEL_DIR (specified in SETTINGS.json)
 3. python predict.py
