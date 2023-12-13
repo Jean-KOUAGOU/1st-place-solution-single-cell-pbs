@@ -38,7 +38,7 @@ Make sure Anaconda3 is installed and execute the following:
 
 ## Hardware:
 - Ubuntu 20.04.6 LTS (Kaggle) AMD EPYC 7B12 CPU @ 2.25GHz (4 CPUs) 30GB RAM, 1xTesla GPU P100 16 GB (Kaggle), 73 GB disc
-- Also tested on Debian GNU/Linux 11, 1xNvidia GPU rtx 3090 24 GB, 252 GB RAM, 500 GB disc
+- Also tested on Debian GNU/Linux 11 AMD EPYC 7282 16-Core Processor @ 3.2GHz (32 CPUs), 1xNvidia GPU rtx 3090 24 GB, 252 GB RAM, 500 GB disc
 
 
 ## Preprocessing
