@@ -70,9 +70,9 @@ Check that there is a non-empty directory named `trained_models` and that its pa
 7. If you would like to predict with pretrained models:
 - Download the trained models from Kaggle at https://www.kaggle.com/datasets/jeannkouagou/best-models-single-cell/data, and place them under a folder named `trained_models` at the top level of this Github repository
 - Execute `./run.sh predict` to run the container and directly predict using the trained models. The output will be a csv file named `submission.csv` in the main directory.
-7. Execute `./run.sh train_and_predict` to train new models and predict. If the objective is not to reproduce the results, you can also change configurations in `config` such as learning rate, epochs, etc.
+8. Execute `./run.sh train_and_predict` to train new models and predict. If the objective is not to reproduce the results, you can also change configurations in `config` such as learning rate, epochs, etc.
 
-*Note:* `./run.sh` should alway be run with an argument, and there are two possibilities `./run.sh predict` or `./run.sh train_and_predict`. If you encounter an error in 6. and 7., there is probably a conflicting container name, e.g., you have executed `./run.sh` several times. The error might look like `The container name "single_cell_container" is already in use by container container_id`. In that case, delete `container_id` by using `sudo docker rm <container_id>`, and retry.
+*Note:* `./run.sh` should alway be run with an argument, and there are two possibilities `./run.sh predict` or `./run.sh train_and_predict`. If you encounter an error in 7. and 8., there is probably a conflicting container name, e.g., you have executed `./run.sh` several times. The error might look like `The container name "single_cell_container" is already in use by container container_id`. In that case, delete `container_id` by using `sudo docker rm <container_id>`, and retry.
 
 
 
