@@ -8,7 +8,8 @@ This repository implements the 1st place solution for the single cell perturbati
 2. Model Architectures
 - Use LSTM, GRU, and 1d-CNN architectures (see `models.py`). 
 3. Loss Functions and Optimizer
-Use MSE, MAE, BCE, and LogCosh (see `helper_classes.py`), and the Adam optimizer to train the models in a 5-fold cross validation setting.
+- Use MSE, MAE, BCE, and LogCosh (see `helper_classes.py`)
+- Use Adam optimizer to train the models in a 5-fold cross validation setting.
 4. Hyperparameters
 - 250 epochs, lr 0.001 for LSTM and 1d-CNN, and 0.0003 for GRU.
 - Use gradient norm clip value of 1.0 during training
@@ -61,11 +62,12 @@ Check that there is a non-empty directory named `trained_models` and that its pa
 
 ## Reproduction (Docker)
 1. Create a directory `data` in this Github repository
-2. Add de_train.parquet, id_map.csv, and sample_submission.csv into the directory `data`
-3. If necessary, edit SETTINGS.json by specifying the correct paths
-4. Make sure your machine has at least 16GB RAM
-5. Execute `./build.sh` to build a docker image
-6. If you would like to predict with pretrained models:
+2. If there is no directory named `trained_models` at the top level of this repository, make sure to create an empty directory with this name
+3. Add de_train.parquet, id_map.csv, and sample_submission.csv into the directory `data`
+4. If necessary, edit SETTINGS.json by specifying the correct paths
+5. Make sure your machine has at least 16GB RAM
+6. Execute `./build.sh` to build a docker image
+7. If you would like to predict with pretrained models:
 - Download the trained models from Kaggle at https://www.kaggle.com/datasets/jeannkouagou/best-models-single-cell/data, and place them under a folder named `trained_models` at the top level of this Github repository
 - Execute `./run.sh predict` to run the container and directly predict using the trained models. The output will be a csv file named `submission.csv` in the main directory.
 7. Execute `./run.sh train_and_predict` to train new models and predict. If the objective is not to reproduce the results, you can also change configurations in `config` such as learning rate, epochs, etc.
