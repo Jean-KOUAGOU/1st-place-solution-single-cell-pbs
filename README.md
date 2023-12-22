@@ -39,7 +39,7 @@ Make sure Anaconda3 is installed and execute the following:
 
 ## Hardware:
 - Ubuntu 20.04.6 LTS (Kaggle) AMD EPYC 7B12 CPU @ 2.25GHz (4 CPUs) 30GB RAM, 1xTesla GPU P100 16 GB (Kaggle), 73 GB disc
-- Also tested on Debian GNU/Linux 11 AMD EPYC 7282 16-Core Processor @ 3.2GHz (32 CPUs), 1xNvidia GPU rtx 3090 24 GB, 252 GB RAM, 500 GB disc
+- Also tested on Debian GNU/Linux 11 AMD EPYC 7282 16-Core Processor @ 3.2GHz (32 CPUs), 1xNvidia GPU RTX 3090 24 GB, 252 GB RAM, 500 GB disc
 
 
 ## Preprocessing
@@ -72,8 +72,8 @@ Check that there is a non-empty directory named `trained_models` and that its pa
 - Execute `./run.sh predict` to run the container and directly predict using the trained models. The output will be a csv file named `submission.csv` in the main directory.
 8. Execute `./run.sh train_and_predict` to train new models and predict.
 - I recommend training on a GPU as it might take too long on CPU.
-- Training on GPU can take between 6 hours (e.g. on Nvidia GPU RTX 3090) and 10 hours (e.g. on Tesla P100) depending on the GPU used
-- If the objective is not to reproduce the results, you can also change configurations in `config` such as learning rate, epochs, etc.
+- Training on GPU can take between 6 hours (e.g. on Nvidia GPU RTX 3090) and 10 hours (e.g. on Tesla GPU P100) depending on the GPU used.
+- If the objective is not to reproduce the results, you can also change configurations in `config` such as learning rate, epochs, etc, before building the container image.
 
 *Note:* `./run.sh` should alway be run with an argument, and there are two possibilities `./run.sh predict` or `./run.sh train_and_predict`. If you encounter an error in 7. and 8., there is probably a conflicting container name, e.g., you have executed `./run.sh` several times. The error might look like `The container name "single_cell_container" is already in use by container container_id`. In that case, delete `container_id` by using `sudo docker rm <container_id>`, and retry.
 
